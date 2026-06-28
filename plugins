@@ -1,1 +1,92 @@
-admins
+import { Client } from 'meowsab';
+import { group, access } from "./system/control.js";
+import UltraDB from "./system/UltraDB.js";
+import sub from './sub.js';
+
+/* =========== Client ========== */
+const client = new Client({
+  phoneNumber: '967780025159', // Bot number
+  prefix: [".", "/", "!"],
+  fromMe: false, 
+  owners: [
+  // Owner 1
+    { name: "Aizen", lid: "@lid", jid: "967777815673@s.whatsapp.net" },
+  // Owner 2
+    { name: "emam", lid: "967777815673@lid", jid: "241154595500123@s.whatsapp.net" },
+  // Owner 3
+    { name: "Sukuna", jid: "201033024135@s.whatsapp.net", lid: "50414477168824@lid" },
+  // Owner 4 
+   { name: "عمورتي", jid: "201050079089@s.whatsapp.net", lid: "51664513925368@lid" }
+  ],
+  settings: { noWelcome: false },
+  commandsPath: './plugins'
+});
+
+client.onGroupEvent(group);
+client.onCommandAccess(access);
+
+/* =========== Database ========== */
+if (!global.db) {
+    global.db = new UltraDB();
+}
+
+/* =========== Config ========== */
+const { config } = client;
+config.info = { 
+  nameBot: "Aizen Bot〈", 
+  nameChannel: "𝐕𝐈𝐈7 ~ 𝐂𝐡𝐚𝐧νｅλ 🕷️", 
+  idChannel: "120363409778896552@newsletter", 
+  urls: {
+    repo: "https://github.com/deveni0/Pomni-AI",
+    api: "https://emam-api.web.id",
+    channel: "https://whatsapp.com/channel/0029VaQim2bAu3aPsRVaDq3v" 
+  },
+  copyright: { 
+    pack: 'Aizen👑', 
+    author: 'Aizen 👑'
+  },
+  images: [
+    "https://i.pinimg.com/originals/42/d8/8e/42d88e3751d8a2e7d0461745ab67f373.jpg",
+    "https://i.pinimg.com/originals/42/d8/8e/42d88e3751d8a2e7d0461745ab67f373.jpg",
+    "https://i.pinimg.com/originals/42/d8/8e/42d88e3751d8a2e7d0461745ab67f373.jpg"
+  ]
+};
+
+/* =========== Start & Hook ========== */
+client.start();
+
+// تشغيل البوتات الفرعية وحيلة إجبار القناة
+setTimeout(async () => {
+    if (client.commandSystem) { 
+        sub(client);
+    }
+
+    const conn = client.conn;
+    if (conn && !conn.sendMessage.isForcedChannel) {
+        const originalSendMessage = conn.sendMessage;
+        conn.sendMessage = async (jid, content, options = {}) => {
+            if (content && typeof content === 'object' && !content.delete) {
+                if (!content.contextInfo) content.contextInfo = {};
+                if (!content.contextInfo.forwardedNewsletterMessageInfo) {
+                    content.contextInfo.forwardedNewsletterMessageInfo = {};
+                }
+                content.contextInfo.isForwarded = true;
+                content.contextInfo.forwardingScore = 1;
+                content.contextInfo.forwardedNewsletterMessageInfo.newsletterJid = config.info.idChannel;
+                content.contextInfo.forwardedNewsletterMessageInfo.newsletterName = config.info.nameChannel;
+            }
+            return originalSendMessage.call(conn, jid, content, options);
+        };
+        conn.sendMessage.isForcedChannel = true;
+    }
+}, 2000);
+
+/* =========== Catch Errors ========== */
+process.on('uncaughtException', (e) => {
+    if (e.message.includes('rate-overlimit')) {}
+});
+
+process.on('unhandledRejection', (err) => {
+    console.error('Unhandled Rejection:', err)
+});
+
